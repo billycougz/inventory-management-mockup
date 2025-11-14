@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DME Return & Inventory Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide-icons@0.300.0/dist/umd/lucide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .card { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div id="app" class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="3xl font-bold text-gray-800 flex items-center">
+                <i data-lucide="scan-line" class="w-7 h-7 mr-3 text-indigo-600"></i>
+                DME Returns & Inventory
+            </h1>
+            <p class="text-gray-500 mt-1">Efficiently manage product returns, inventory, and billing transparency.</p>
+        </header>
+
+        <!-- Main Content: Visit/Dispensation Details -->
+        <div id="dispensation-view" class="card bg-white rounded-xl p-6 lg:p-8">
+            
+            <!-- Patient & Visit Summary (Simulated Lookup Result) -->
+            <div class="border-b pb-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-700">Patient Dispensation Record</h2>
+                    <div class="bg-indigo-100 text-indigo-700 text-sm font-medium px-3 py-1 rounded-full flex items-center">
+                         <i data-lucide="calendar-check" class="w-4 h-4 mr-2"></i>
+                        Visit ID: V-498721
+                    </div>
+                </div>
+                
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="font-medium text-gray-500">Patient Name</p>
+                        <p class="text-gray-800">Jane Doe (DOB: 05/15/1975)</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="font-medium text-gray-500">Dispensing Date</p>
+                        <p class="text-gray-800">2025-11-10</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="font-medium text-gray-500">Primary Payer</p>
+                        <p class="text-gray-800">MediCare (Claim: C-239482)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dispensed Items Table -->
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Dispensed Products</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product / HCPCS</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial/Lot No.</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="dispensed-items-list">
+                        <!-- Data will be populated here by JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Return Modal (UX Focus) -->
+    <div id="return-modal" class="fixed inset-0 z-50 bg-black bg-opacity-40 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-xl card p-6" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 flex items-center">
+                    <i data-lucide="undo-2" class="w-5 h-5 mr-2 text-red-600"></i>
+                    Process Return
+                </h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Product Identification -->
+            <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm font-semibold text-red-700" id="return-product-name">
+                    Returning: Custom Knee Brace (L1832) - SN: 987654321
+                </p>
+            </div>
+
+            <!-- Return Workflow Steps (Compliance & Inventory) -->
+            <form id="return-form" onsubmit="handleReturn(event)">
+                <!-- Step 1: Return Reason (Mandatory for Audit Trail) -->
+                <div class="mb-6">
+                    <label for="return-reason" class="block text-sm font-medium text-gray-700 mb-1">
+                        1. Reason for Return <span class="text-red-500">*</span>
+                    </label>
+                    <select id="return-reason" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Select a reason...</option>
+                        <option value="fit_issue">Fit Issue / Patient Discomfort</option>
+                        <option value="patient_refusal">Patient Refusal / No Longer Needed</option>
+                        <option value="incorrect_item">Incorrect Item Dispensed</option>
+                        <option value="damaged_doa">Damaged (DOA/Unopened)</option>
+                        <option value="physician_cxl">Physician Cancellation</option>
+                    </select>
+                </div>
+
+                <!-- Step 2: Condition Assessment (Inventory Impact) -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        2. Condition Assessment (Impacts Inventory) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="space-y-3">
+                        <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                            <input type="radio" name="condition" value="restockable" required class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                            <span class="ml-3 text-sm font-medium text-gray-800">
+                                Restockable: Unused, Sealed, or Like-New
+                            </span>
+                             <span class="ml-auto text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">INVENTORY BACK</span>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                            <input type="radio" name="condition" value="non_restockable_used" class="form-radio h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500">
+                            <span class="ml-3 text-sm font-medium text-gray-800">
+                                Non-Restockable: Used, Opened, or Minor Damage (Dispose/Repair)
+                            </span>
+                            <span class="ml-auto text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">SCRAP/HOLD</span>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                            <input type="radio" name="condition" value="non_restockable_major" class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                            <span class="ml-3 text-sm font-medium text-gray-800">
+                                Non-Restockable: Major Damage / Biohazard
+                            </span>
+                            <span class="ml-auto text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">DISPOSE</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 3: Billing & Financial Transparency -->
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="text-sm font-semibold text-blue-700 flex items-center mb-2">
+                        <i data-lucide="banknote" class="w-4 h-4 mr-2"></i>
+                        Billing Transparency
+                    </h4>
+                    <p class="text-sm text-blue-800">
+                        A credit of $<span id="product-price">250.00</span> will be processed. The system will automatically initiate a **Claim Reversal (Code R3)** with the Primary Payer (MediCare).
+                    </p>
+                </div>
+
+                <!-- Step 4: Notes (Optional but recommended) -->
+                <div class="mb-6">
+                    <label for="return-notes" class="block text-sm font-medium text-gray-700 mb-1">
+                        Audit Notes (Optional)
+                    </label>
+                    <textarea id="return-notes" rows="3" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Patient stated the size was too large."></textarea>
+                </div>
+
+
+                <!-- Action Button -->
+                <div class="flex justify-end pt-4 border-t">
+                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition mr-3">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition flex items-center">
+                        <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+                        Confirm & Process Return
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Toast Notification (for mock success message) -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white p-4 rounded-lg shadow-xl hidden transition-opacity duration-300 opacity-0" role="alert">
+        <div class="flex items-center">
+             <i data-lucide="check" class="w-5 h-5 mr-2"></i>
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script>
+        // --- Mock Data ---
+        const MOCK_DISPENSATIONS = [
+            { id: 1, name: "Custom Knee Brace", hcpcs: "L1832", serial: "987654321", price: 250.00, quantity: 1, status: "Dispensed" },
+            { id: 2, name: "Walking Boot", hcpcs: "L3260", serial: "BOOT-XYZ-112", price: 150.00, quantity: 1, status: "Dispensed" },
+            { id: 3, name: "Crutches (Pair)", hcpcs: "E0114", serial: "CRUTCH-456", price: 50.00, quantity: 1, status: "Returned (2025-11-12)" },
+        ];
+
+        let selectedItem = null;
+
+        // --- Core UI Functions ---
+
+        /**
+         * Renders the list of dispensed items.
+         */
+        function renderDispensedItems() {
+            const listElement = document.getElementById('dispensed-items-list');
+            listElement.innerHTML = '';
+
+            MOCK_DISPENSATIONS.forEach(item => {
+                const isReturned = item.status.includes('Returned');
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition';
+
+                let statusBadge;
+                let actionButton;
+
+                if (isReturned) {
+                    statusBadge = `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                     Returned
+                                  </span>
+                                  <span class="block text-xs text-gray-500 mt-1">${item.status.split('(')[1].replace(')', '')}</span>`;
+                    actionButton = `<button disabled class="text-gray-400 text-sm py-1 px-3">Complete</button>`;
+                } else {
+                    statusBadge = `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                                     Dispensed
+                                  </span>`;
+                    actionButton = `<button onclick="prepareReturn(${item.id})" class="text-sm font-medium text-red-600 hover:text-red-800 transition py-1 px-3 rounded-lg border border-red-200 hover:bg-red-50">
+                                     Initiate Return
+                                  </button>`;
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${item.name} <span class="block text-xs text-gray-500">(${item.hcpcs})</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">${item.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.serial}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        ${statusBadge}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${actionButton}
+                    </td>
+                `;
+                listElement.appendChild(row);
+            });
+            // REMOVED: lucide.createIcons() was here, causing the error if the function was called too early.
+        }
+
+        /**
+         * Prepares the modal with specific item details.
+         * @param {number} itemId - The ID of the item to be returned.
+         */
+        function prepareReturn(itemId) {
+            selectedItem = MOCK_DISPENSATIONS.find(i => i.id === itemId);
+            if (!selectedItem) return;
+
+            // Update modal product details
+            document.getElementById('return-product-name').textContent =
+                `Returning: ${selectedItem.name} (${selectedItem.hcpcs}) - SN: ${selectedItem.serial}`;
+            
+            // Update mock price for billing transparency section
+            document.getElementById('product-price').textContent = selectedItem.price.toFixed(2);
+            
+            // Reset form fields
+            document.getElementById('return-form').reset();
+            
+            // Show modal
+            toggleModal(true);
+        }
+
+        /**
+         * Toggles the visibility of the return modal.
+         * @param {boolean} show - True to show, false to hide.
+         */
+        function toggleModal(show) {
+            const modal = document.getElementById('return-modal');
+            modal.classList.toggle('hidden', !show);
+            if (show) {
+                 // Trap focus when modal is open (optional but good UX practice)
+                const firstFocusable = modal.querySelector('select, input, button, textarea');
+                if (firstFocusable) firstFocusable.focus();
+            } else {
+                // Return focus to the button that opened the modal (ideal UX)
+                const opener = document.querySelector(`button[onclick="prepareReturn(${selectedItem?.id})"]`);
+                if (opener) opener.focus();
+                selectedItem = null;
+            }
+        }
+
+        /**
+         * Handles the final return process submission.
+         * @param {Event} event - The form submission event.
+         */
+        function handleReturn(event) {
+            event.preventDefault();
+            
+            if (!selectedItem) {
+                showToast("Error: No item selected.", 'bg-red-600');
+                return;
+            }
+
+            const form = event.target;
+            const reason = form.elements['return-reason'].value;
+            const condition = form.elements['condition'].value;
+            const notes = form.elements['return-notes'].value;
+            const timestamp = new Date().toISOString().substring(0, 10);
+            
+            // 1. Log to console for simulation
+            console.log("--- RETURN PROCESSED ---");
+            console.log(`Product: ${selectedItem.name} (SN: ${selectedItem.serial})`);
+            console.log(`Return Reason: ${reason}`);
+            console.log(`Condition: ${condition}`);
+            console.log(`Inventory Action: ${condition === 'restockable' ? 'Restocked' : 'Scrapped/Disposed'}`);
+            console.log(`Billing Action: Claim Reversal Initiated for $${selectedItem.price.toFixed(2)}`);
+            console.log(`Notes: ${notes}`);
+            console.log(`Date: ${timestamp}`);
+            
+            // 2. Mock state update
+            const itemIndex = MOCK_DISPENSATIONS.findIndex(i => i.id === selectedItem.id);
+            if (itemIndex > -1) {
+                MOCK_DISPENSATIONS[itemIndex].status = `Returned (${timestamp})`;
+            }
+
+            // 3. Close modal and show success toast
+            toggleModal(false);
+            showToast("Return successfully processed. Inventory updated and Claim Reversal initiated.", 'bg-green-600');
+            
+            // 4. Re-render the list to show the status update
+            renderDispensedItems();
+        }
+
+        /**
+         * Displays a temporary success/error message (Toast).
+         * @param {string} message - The message to display.
+         * @param {string} colorClass - The background color class (e.g., 'bg-green-600').
+         */
+        function showToast(message, colorClass) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toast.className = `fixed bottom-4 right-4 text-white p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 ${colorClass}`;
+            toastMessage.textContent = message;
+
+            // Show toast
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.remove('opacity-0'), 10); // Start fade-in
+
+            // Hide toast after 4 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300); // Wait for fade-out before hiding
+            }, 4000);
+        }
+
+        // Initial render on load
+        window.onload = function() {
+             // This ensures the lucide library has loaded before icons are created.
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons(); // Initialize icons for all static elements (header, modal, etc.)
+            }
+            renderDispensedItems();
+        };
+
+    </script>
+</body>
+</html>
